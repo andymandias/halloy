@@ -13,7 +13,6 @@ dev = ["debug", "data/dev"]
 data = { version = "0.1.0", path = "data" }
 ipc = { version = "0.1.0", path = "ipc" }
 
-notify-rust = "4"
 chrono = { version = "0.4", features = ['serde'] }
 fern = "0.6.1"
 iced = { version = "0.13.0-dev", features = [
@@ -32,6 +31,11 @@ open = "5.0.1"
 bytesize = "1.3.0"
 timeago = "0.4.2"
 futures = "0.3.30"
+
+[dependencies.notify-rust]
+version = "4"
+git = "https://github.com/andymandias/notify-rust"
+branch = "xdg-portal-notifications"
 
 [dependencies.uuid]
 version = "1.0"
