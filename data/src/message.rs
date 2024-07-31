@@ -515,6 +515,7 @@ fn target(
         | Command::CNOTICE(_, _, _)
         | Command::CPRIVMSG(_, _, _)
         | Command::KNOCK(_, _)
+        | Command::MARKREAD(_, _)
         | Command::TAGMSG(_)
         | Command::USERIP(_)
         | Command::HELP(_)
