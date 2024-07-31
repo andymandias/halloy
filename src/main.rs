@@ -21,9 +21,11 @@ use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Utc};
 use data::config::{self, Config};
+use data::history::{self, read_marker_to_string};
 use data::isupport::{ChatHistorySubcommand, MessageReference};
 use data::version::Version;
-use data::{environment, history, server, version, Url, User};
+use data::window::Window;
+use data::{environment, server, version, User};
 use iced::widget::{column, container};
 use iced::{padding, Length, Subscription, Task};
 use screen::{dashboard, help, migration, welcome};
@@ -916,6 +918,35 @@ impl Halloy {
                                             },
                                         ));
                                     }
+                                    data::client::Event::UpdateReadMarker(target, read_marker) => {
+                                        let server = server.clone();
+                                        let kind = history::Kind::from(target);
+
+                                        if dashboard.update_read_marker(&server, &kind, read_marker) {
+                                            log::debug!(
+                                                "[{server}] updated read-marker for {kind} to {}",
+                                                read_marker_to_string(&read_marker),
+                                            );
+
+                                            if dashboard.stored_messages_may_be_unread(&server, &kind, read_marker) {
+                                                commands.push(Task::perform(
+                                                    history::num_stored_unread_messages(
+                                                        server.clone(),
+                                                        kind.clone(),
+                                                        read_marker,
+                                                    ),
+                                                    move |num_stored_unread_messages| {
+                                                        Message::Dashboard(dashboard::Message::IncrementUnread(
+                                                            server.clone(),
+                                                            kind.clone(),
+                                                            read_marker,
+                                                            num_stored_unread_messages,
+                                                        ))
+                                                    },
+                                                ));
+                                            }
+                                        }
+                                    }
                                 }
                             }
 
@@ -1081,10 +1112,20 @@ impl Halloy {
                 if let Screen::Dashboard(dashboard) = &mut self.screen {
                     if dashboard.update_read_marker(&server, &kind, read_marker) {
                         log::debug!(
-                            "[{server}] updated read-marker for {kind} to {:?}",
-                            read_marker
+                            "[{server}] updated read-marker for {kind} to {}",
+                            read_marker_to_string(&read_marker),
                         );
 
+                        match kind.clone() {
+                            history::Kind::Server => (),
+                            history::Kind::Channel(channel) => {
+                                self.clients.send_markread(&server, &channel, read_marker)
+                            }
+                            history::Kind::Query(nick) => {
+                                self.clients
+                                    .send_markread(&server, nick.as_ref(), read_marker)
+                            }
+                        }
 
                         if dashboard.stored_messages_may_be_unread(&server, &kind, read_marker) {
                             return Task::perform(

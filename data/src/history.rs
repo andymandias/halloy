@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{format::SecondsFormat, DateTime, Utc};
 use irc::proto;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -697,6 +697,14 @@ fn has_matching_content(message: &Message, other: &Message) -> bool {
 pub fn after_read_marker(message: &Message, read_marker: &Option<DateTime<Utc>>) -> bool {
     read_marker.is_none()
         || read_marker.is_some_and(|read_marker| message.server_time > read_marker)
+}
+
+pub fn read_marker_to_string(read_marker: &Option<DateTime<Utc>>) -> String {
+    if let Some(read_marker) = read_marker {
+        read_marker.to_rfc3339_opts(SecondsFormat::Millis, true)
+    } else {
+        "*".to_string()
+    }
 }
 
 #[derive(Debug)]

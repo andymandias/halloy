@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::time::{Duration, Instant};
 
+use crate::history::read_marker_to_string;
 use crate::isupport::{ChatHistorySubcommand, MessageReference};
 use crate::message::{message_id, server_time, source};
 use crate::time::Posix;
@@ -96,6 +97,7 @@ pub enum Event {
     ChatHistoryRequestReceived(ChatHistorySubcommand, usize),
     ChatHistoryTargetsReceived(DateTime<Utc>),
     LoadReadMarker(String),
+    UpdateReadMarker(String, Option<DateTime<Utc>>),
 }
 
 struct ChatHistoryRequest {
@@ -122,6 +124,7 @@ pub struct Client {
     supports_account_notify: bool,
     supports_extended_join: bool,
     supports_chathistory: bool,
+    supports_read_marker: bool,
     chathistory_requests: HashMap<String, ChatHistoryRequest>,
     chathistory_exhausted: HashMap<String, bool>,
     highlight_blackout: HighlightBlackout,
@@ -177,6 +180,7 @@ impl Client {
             supports_account_notify: false,
             supports_extended_join: false,
             supports_chathistory: false,
+            supports_read_marker: false,
             chathistory_requests: HashMap::new(),
             chathistory_exhausted: HashMap::new(),
             highlight_blackout: HighlightBlackout::Blackout(Instant::now()),
@@ -577,6 +581,11 @@ impl Client {
                     if contains("multi-prefix") {
                         requested.push("multi-prefix");
                     }
+                    if contains("read-marker") {
+                        requested.push("read-marker");
+                    } else if contains("draft/read-marker") {
+                        requested.push("draft/read-marker");
+                    }
 
                     if !requested.is_empty() {
                         // Request
@@ -608,6 +617,9 @@ impl Client {
                 }
                 if caps.contains(&"extended-join") {
                     self.supports_extended_join = true;
+                }
+                if caps.contains(&"read-marker") || caps.contains(&"draft/read-marker") {
+                    self.supports_read_marker = true;
                 }
 
                 let supports_sasl = caps.iter().any(|cap| cap.contains("sasl"));
@@ -728,6 +740,11 @@ impl Client {
                 }
                 if newly_contains("multi-prefix") {
                     requested.push("multi-prefix");
+                }
+                if newly_contains("read-marker") {
+                    requested.push("read-marker");
+                } else if newly_contains("draft/read-marker") {
+                    requested.push("draft/read-marker");
                 }
 
                 if !requested.is_empty() {
@@ -1545,6 +1562,14 @@ impl Client {
 
                 return None;
             }
+            Command::MARKREAD(target, Some(timestamp)) => {
+                let timestamp = timestamp.strip_prefix("timestamp=").and_then(|timestamp| {
+                    DateTime::parse_from_rfc3339(timestamp)
+                        .ok()
+                        .map(|dt| dt.with_timezone(&Utc))
+                });
+                return Some(vec![Event::UpdateReadMarker(target.clone(), timestamp)]);
+            }
             _ => {}
         }
 
@@ -1727,6 +1752,18 @@ impl Client {
             .get(target)
             .cloned()
             .unwrap_or_default()
+    }
+
+    pub fn send_markread(&mut self, target: &str, read_marker: Option<DateTime<Utc>>) {
+        if self.supports_read_marker {
+            if let Some(read_marker) = read_marker {
+                let _ = self.handle.try_send(command!(
+                    "MARKREAD",
+                    target.to_string(),
+                    format!("timestamp={}", read_marker_to_string(&Some(read_marker))),
+                ));
+            }
+        }
     }
 
     fn topic<'a>(&'a self, channel: &str) -> Option<&'a Topic> {
@@ -2028,6 +2065,17 @@ impl Map {
         self.client(server)
             .map(|client| client.chathistory_exhausted(target))
             .unwrap_or_default()
+    }
+
+    pub fn send_markread(
+        &mut self,
+        server: &Server,
+        target: &str,
+        read_marker: Option<DateTime<Utc>>,
+    ) {
+        if let Some(client) = self.client_mut(server) {
+            client.send_markread(target, read_marker);
+        }
     }
 
     pub fn get_channels<'a>(&'a self, server: &Server) -> &'a [String] {
