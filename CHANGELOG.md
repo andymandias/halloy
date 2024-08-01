@@ -1,6 +1,6 @@
 # Unreleased
 
-- Enable support for IRCv3 `chathistory` and `msgid`
+- Enable support for IRCv3 `chathistory`, `msgid`, and `read-marker`
 
 # 2024.10 (2024-08-04)
 

@@ -40,6 +40,7 @@ Halloy is also available from [Flathub](https://flathub.org/apps/org.squidowl.ha
     * [extended-join](https://ircv3.net/specs/extensions/extended-join)
     * [chathistory](https://ircv3.net/specs/extensions/chathistory)
     * [msgid](https://ircv3.net/specs/extensions/message-ids)
+    * [read-marker](https://ircv3.net/specs/extensions/read-marker)
 * SASL support
 * DCC Send
 * Keyboard shortcuts
