@@ -765,6 +765,9 @@ impl Client {
                 if del_caps.contains(&"chathistory") || del_caps.contains(&"draft/chathistory") {
                     self.supports_chathistory = false;
                 }
+                if del_caps.contains(&"read-marker") || del_caps.contains(&"draft/read-marker") {
+                    self.supports_read_marker = false;
+                }
 
                 self.listed_caps
                     .retain(|cap| !del_caps.iter().any(|del_cap| del_cap == cap));
