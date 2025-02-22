@@ -1,4 +1,4 @@
-use data::{file_transfer, history, preview, Config};
+use data::{file_transfer, history, preview, Config, Version};
 use iced::widget::{button, center, container, pane_grid, row, text};
 
 use crate::buffer::{self, Buffer};
@@ -6,7 +6,7 @@ use crate::widget::tooltip;
 use crate::window::{self, Window};
 use crate::{icon, theme, widget, Theme};
 
-use super::sidebar;
+use super::{sidebar, Panes};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -22,6 +22,7 @@ pub enum Message {
     Popout,
     Merge,
     ScrollToBottom,
+    CreateEmptyBuffer,
 }
 
 #[derive(Clone)]
@@ -62,6 +63,9 @@ impl Pane {
         config: &'a Config,
         theme: &'a Theme,
         main_window: &'a Window,
+        version: &'a Version,
+        panes2: &'a Panes,
+        focus: Option<(window::Id, pane_grid::Pane)>,
     ) -> widget::Content<'a, Message> {
         let is_popout = window != main_window.id;
 
@@ -86,6 +90,7 @@ impl Pane {
             Buffer::FileTransfers(_) => "File Transfers".to_string(),
             Buffer::Logs(_) => "Logs".to_string(),
             Buffer::Highlights(_) => "Highlights".to_string(),
+            Buffer::List(_) => "List".to_string(),
         };
 
         let title_bar = self.title_bar.view(
@@ -113,6 +118,10 @@ impl Pane {
                 theme,
                 is_focused,
                 sidebar,
+                main_window.id,
+                version,
+                panes2,
+                focus,
             )
             .map(move |msg| Message::Buffer(id, msg));
 
@@ -123,7 +132,6 @@ impl Pane {
 
     pub fn resource(&self) -> Option<history::Resource> {
         match &self.buffer {
-            Buffer::Empty => None,
             Buffer::Channel(state) => Some(history::Resource {
                 kind: history::Kind::Channel(state.server.clone(), state.target.clone()),
             }),
@@ -133,9 +141,9 @@ impl Pane {
             Buffer::Query(state) => Some(history::Resource {
                 kind: history::Kind::Query(state.server.clone(), state.target.clone()),
             }),
-            Buffer::FileTransfers(_) => None,
             Buffer::Logs(_) => Some(history::Resource::logs()),
             Buffer::Highlights(_) => Some(history::Resource::highlights()),
+            Buffer::Empty | Buffer::List(_) | Buffer::FileTransfers(_) => None,
         }
     }
 
@@ -147,7 +155,8 @@ impl Pane {
             | Buffer::Server(_)
             | Buffer::FileTransfers(_)
             | Buffer::Logs(_)
-            | Buffer::Highlights(_) => vec![],
+            | Buffer::Highlights(_)
+            | Buffer::List(_) => vec![],
         }
     }
 
@@ -172,6 +181,21 @@ impl TitleBar {
     ) -> widget::TitleBar<'a, Message> {
         // Pane controls.
         let mut controls = row![].spacing(2);
+
+        let empty_buffer_button = button(center(icon::scroll_to_bottom()))
+            .padding(5)
+            .width(22)
+            .height(22)
+            .on_press(Message::CreateEmptyBuffer)
+            .style(|theme, status| theme::button::secondary(theme, status, false));
+
+        let empty_buffer_button_with_tooltip = tooltip(
+            empty_buffer_button,
+            show_tooltips.then_some("Create a empty buffer"),
+            tooltip::Position::Bottom,
+        );
+
+        controls = controls.push(empty_buffer_button_with_tooltip);
 
         if let Buffer::Channel(state) = &buffer {
             // Show scroll-to-bottom if scrollable isnt scrolled to bottom.
@@ -342,6 +366,7 @@ impl From<Pane> for data::Pane {
             Buffer::FileTransfers(_) => data::Buffer::Internal(buffer::Internal::FileTransfers),
             Buffer::Logs(_) => data::Buffer::Internal(buffer::Internal::Logs),
             Buffer::Highlights(_) => data::Buffer::Internal(buffer::Internal::Highlights),
+            Buffer::List(_) => data::Buffer::Internal(buffer::Internal::List),
         };
 
         data::Pane::Buffer {

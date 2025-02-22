@@ -1083,6 +1083,7 @@ impl Halloy {
                     &self.config,
                     &self.theme,
                     &self.main_window,
+                    &self.version,
                 )
                 .map(Message::Dashboard)
         } else {

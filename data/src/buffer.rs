@@ -29,6 +29,7 @@ pub enum Internal {
     FileTransfers,
     Logs,
     Highlights,
+    List,
 }
 
 impl Buffer {

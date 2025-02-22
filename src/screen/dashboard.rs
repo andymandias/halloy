@@ -28,7 +28,7 @@ use crate::widget::{
     anchored_overlay, context_menu, selectable_text, shortcut, Column, Element, Row,
 };
 use crate::window::Window;
-use crate::{event, notification, theme, window, Theme};
+use crate::{event, main, notification, theme, window, Theme};
 
 mod command_bar;
 pub mod pane;
@@ -473,6 +473,9 @@ impl Dashboard {
                                 );
                             }
                         }
+                    }
+                    pane::Message::CreateEmptyBuffer => {
+                        return (self.open_empty_buffer(config, main_window), None)
                     }
                 }
             }
@@ -1112,6 +1115,7 @@ impl Dashboard {
         config: &'a Config,
         theme: &'a Theme,
         main_window: &'a Window,
+        version: &'a Version,
     ) -> Element<'a, Message> {
         if let Some(state) = self.panes.popout.get(&window) {
             let content = container(
@@ -1131,6 +1135,9 @@ impl Dashboard {
                         config,
                         theme,
                         main_window,
+                        version,
+                        &self.panes,
+                        self.focus,
                     )
                 })
                 .spacing(4)
@@ -1177,6 +1184,9 @@ impl Dashboard {
                 config,
                 theme,
                 main_window,
+                version,
+                &self.panes,
+                self.focus,
             )
         })
         .on_click(pane::Message::PaneClicked)
@@ -1340,13 +1350,36 @@ impl Dashboard {
         }
     }
 
+    fn open_empty_buffer(&mut self, config: &Config, main_window: &Window) -> Task<Message> {
+        let Some((_, pane)) = self.focus else {
+            log::error!("no focused buffer");
+            return Task::none();
+        };
+
+        let result = self.panes.main.split(
+            match config.pane.split_axis {
+                config::pane::SplitAxis::Horizontal => pane_grid::Axis::Horizontal,
+                config::pane::SplitAxis::Vertical => pane_grid::Axis::Vertical,
+            },
+            pane,
+            Pane::new(Buffer::Empty, config),
+        );
+        self.last_changed = Some(Instant::now());
+
+        if let Some((pane, _)) = result {
+            return self.focus_pane(main_window, main_window.id, pane);
+        }
+
+        Task::none()
+    }
+
     fn toggle_internal_buffer(
         &mut self,
         config: &Config,
         main_window: &Window,
         buffer: buffer::Internal,
     ) -> Task<Message> {
-        let panes = self.panes.clone();
+        let panes: Panes = self.panes.clone();
 
         let open = panes
             .iter(main_window.id)
@@ -1380,7 +1413,7 @@ impl Dashboard {
         settings: buffer::Settings,
         config: &Config,
     ) -> Task<Message> {
-        let panes = self.panes.clone();
+        let panes: Panes = self.panes.clone();
 
         // If buffer already is open, we focus it.
         for (window, id, pane) in panes.iter(main_window.id) {
