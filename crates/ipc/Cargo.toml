@@ -1,0 +1,18 @@
+[package]
+name = "ipc"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+data = { path = "../data" }
+
+futures.workspace = true
+rand_chacha.workspace = true
+rand.workspace = true
+thiserror.workspace = true
+url.workspace = true
+
+interprocess = { workspace = true, features = ["tokio_support"] }
+tokio = { workspace = true, features = ["rt", "fs", "process"] }

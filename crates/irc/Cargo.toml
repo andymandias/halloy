@@ -1,0 +1,23 @@
+[package]
+name = "irc"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+proto = { path = "../irc_proto", package = "irc_proto" }
+
+bytes.workspace = true
+fast-socks5.workspace = true
+futures.workspace = true
+rustls-native-certs.workspace = true
+rustls-pemfile.workspace = true
+thiserror.workspace = true
+
+arti-client = { workspace = true, features = ["rustls", "compression", "tokio", "static-sqlite"] }
+async-http-proxy = { workspace = true, features = ["runtime-tokio", "basic-auth"] }
+tokio-rustls = { workspace = true, features = ["tls12", "ring"] }
+tokio-util = { workspace = true, features = ["codec"] }
+tokio = { workspace = true,  features = ["full"] }
+xz2 = { workspace = true, features = ["static"] }

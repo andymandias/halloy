@@ -6,6 +6,6 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
-itertools = "0.12.1"
-nom = "7.1"
-thiserror = "1.0.30"
+itertools.workspace = true
+nom.workspace = true
+thiserror.workspace = true

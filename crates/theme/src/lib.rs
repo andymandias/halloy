@@ -1,16 +1,16 @@
+#[cfg(not(target_family = "wasm"))]
 use std::path::PathBuf;
 
 use base64::Engine;
 use iced_core::Color;
 use palette::rgb::{Rgb, Rgba};
 use palette::{FromColor, Hsva, Okhsl, Srgb, Srgba};
-use rand::prelude::*;
-use rand_chacha::ChaChaRng;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tokio::fs;
 
+#[cfg(not(target_family = "wasm"))]
 const DEFAULT_THEME_NAME: &str = "Ferra";
+#[cfg(not(target_family = "wasm"))]
 const DEFAULT_THEME_CONTENT: &str = include_str!("../../../assets/themes/ferra.toml");
 
 #[derive(Debug, Clone)]
@@ -19,6 +19,7 @@ pub struct Theme {
     pub colors: Colors,
 }
 
+#[cfg(not(target_family = "wasm"))]
 impl Default for Theme {
     fn default() -> Self {
         Self {
@@ -49,7 +50,10 @@ pub struct Colors {
 }
 
 impl Colors {
+    #[cfg(not(target_family = "wasm"))]
     pub async fn save(self, path: PathBuf) -> Result<(), Error> {
+        use tokio::fs;
+
         let content = toml::to_string(&self)?;
 
         fs::write(path, &content).await?;
@@ -72,6 +76,7 @@ impl Colors {
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[cfg(not(target_family = "wasm"))]
     #[error("Failed to serialize theme to toml: {0}")]
     Encode(#[from] toml::ser::Error),
     #[error("Failed to write theme file: {0}")]
@@ -184,6 +189,7 @@ pub struct Text {
     pub error: Color,
 }
 
+#[cfg(not(target_family = "wasm"))]
 impl Default for Colors {
     fn default() -> Self {
         toml::from_str(DEFAULT_THEME_CONTENT).expect("parse default theme")
@@ -248,7 +254,11 @@ pub fn alpha_color(min_alpha: f32, max_alpha: f32, background: Color, foreground
 }
 
 /// Randomizes the hue value of an `iced::Color` based on a seed.
+#[cfg(not(target_family = "wasm"))]
 pub fn randomize_color(original_color: Color, seed: &str) -> Color {
+    use rand::prelude::*;
+    use rand_chacha::ChaChaRng;
+
     // Generate a 64-bit hash from the seed string
     let seed_hash = seahash::hash(seed.as_bytes());
 

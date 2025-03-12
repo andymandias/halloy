@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
-const VERSION: &str = include_str!("../VERSION");
+const VERSION: &str = include_str!("../../VERSION");
 
 fn main() {
     let git_hash = Command::new("git")

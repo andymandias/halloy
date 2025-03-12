@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use data::appearance;
 use futures::stream;
-use futures::{stream::BoxStream, StreamExt};
+use futures::{StreamExt, stream::BoxStream};
 use iced::advanced::subscription::Hasher;
 use iced::futures;
-use iced::{advanced::graphics::futures::subscription, Subscription};
+use iced::{Subscription, advanced::graphics::futures::subscription};
 use tokio::time;
 
 pub use theme::Theme;

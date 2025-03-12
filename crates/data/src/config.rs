@@ -5,15 +5,15 @@ use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 use serde::Deserialize;
 use thiserror::Error;
-use tokio_stream::wrappers::ReadDirStream;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::ReadDirStream;
 
 use crate::appearance::theme::Colors;
 use crate::appearance::{self, Appearance};
 use crate::audio::{self, Sound};
 use crate::environment::config_dir;
 use crate::server::Map as ServerMap;
-use crate::{environment, Theme};
+use crate::{Theme, environment};
 
 pub use self::buffer::Buffer;
 pub use self::file_transfer::FileTransfer;
@@ -37,7 +37,7 @@ pub mod proxy;
 pub mod server;
 pub mod sidebar;
 
-const CONFIG_TEMPLATE: &str = include_str!("../../config.toml");
+const CONFIG_TEMPLATE: &str = include_str!("../../../config.toml");
 const DEFAULT_THEME_NAME: &str = "ferra";
 
 #[derive(Debug, Clone, Default)]
@@ -365,7 +365,9 @@ pub enum Error {
     DuplicatePassword,
     #[error("Only one of nick_password, nick_password_file and nick_password_command can be set.")]
     DuplicateNickPassword,
-    #[error("Exactly one of sasl.plain.password, sasl.plain.password_file or sasl.plain.password_command must be set.")]
+    #[error(
+        "Exactly one of sasl.plain.password, sasl.plain.password_file or sasl.plain.password_command must be set."
+    )]
     DuplicateSaslPassword,
     #[error("Config does not exist")]
     ConfigMissing { has_yaml_config: bool },

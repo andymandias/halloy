@@ -1,0 +1,24 @@
+[package]
+name = "theme"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+base64.workspace = true
+iced_core.workspace = true
+palette.workspace = true
+thiserror.workspace = true
+
+derive_more = { workspace = true, features = ["full"] }
+serde = { workspace = true, features = ["derive"] }
+strum = { workspace = true, features = ["derive"] }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+rand_chacha.workspace = true
+rand.workspace = true
+seahash.workspace = true
+toml.workspace = true
+
+tokio = { workspace = true, features = ["fs"] }
