@@ -133,7 +133,7 @@ jobs:
         run: ${{ matrix.target.artifact_name }}
 
       - name: Upload asset
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@v3
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: ./${{ matrix.target.artifact }}/${{ env.ARTIFACT_NAME }}
