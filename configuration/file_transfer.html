@@ -30,21 +30,34 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -58,7 +71,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -71,17 +85,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -108,13 +125,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -128,7 +146,7 @@
                         <a href="https://github.com/squidowl/halloy" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/file_transfer.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/file_transfer.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -137,7 +155,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -169,7 +192,7 @@
 save_directory = "/Users/halloy/Downloads"
 </code></pre>
 <h2 id="passive"><a class="header" href="#passive"><code>passive</code></a></h2>
-<p>If true, act as the "client" for the transfer. Requires the remote user act as the <a href="#file_transferserver-section">server</a>.</p>
+<p>If true, act as the "client" for the transfer. Requires the remote user act as the <a href="#file_transferserver">server</a>.</p>
 <pre><code class="language-toml"># Type: boolean
 # Values: true, false
 # Default: true
@@ -214,7 +237,7 @@ bind_address = "&lt;some ip&gt;"
 # Default: not set
 
 [file_transfer.server]
-bind_port_first = "1024"
+bind_port_first = 1024
 </code></pre>
 <h2 id="bind_port_last"><a class="header" href="#bind_port_last"><code>bind_port_last</code></a></h2>
 <p>Last port in port range to bind to.</p>
@@ -223,14 +246,52 @@ bind_port_first = "1024"
 # Default: not set
 
 [file_transfer.server]
-bind_port_last = "5000"
+bind_port_last = 5000
+</code></pre>
+<h1 id="file_transferauto_accept"><a class="header" href="#file_transferauto_accept"><code>[file_transfer.auto_accept]</code></a></h1>
+<p>Configuration for automatically accepting incoming file transfers.</p>
+<h2 id="enabled"><a class="header" href="#enabled"><code>enabled</code></a></h2>
+<p>If true, automatically accept incoming file transfers. Requires <code>save_directory</code> to be set.</p>
+<pre><code class="language-toml"># Type: boolean
+# Values: true, false
+# Default: false
+
+[file_transfer.auto_accept]
+enabled = false
+</code></pre>
+<h2 id="nicks"><a class="header" href="#nicks"><code>nicks</code></a></h2>
+<p>If true, automatically accept incoming file transfers from these nicks.
+Note <code>auto_accept</code> has to be enabled.</p>
+<pre><code class="language-toml"># Type: array of strings
+# Values: array of any strings
+# Default: []
+
+[file_transfer.auto_accept]
+nicks = ["nick1", "nick2"]
+</code></pre>
+<h2 id="masks"><a class="header" href="#masks"><code>masks</code></a></h2>
+<p>If true, automatically accept incoming file transfers from these nicks. Matches are made against the full nickname (i.e. nickname, username, and hostname in the format <code>nickname!username@hostname</code>). Note <code>auto_accept</code> has to be enabled.</p>
+<div class="warning">
+<p>Use toml multi-line literal strings <code>'''\bfoo'd\b'''</code> when writing a regex. This allows you to write write the regex without
+escaping. You can also use a literal string <code>'\bfoo\b'</code>, but then you can't use <code>'</code> inside the string.</p>
+<p>Without literal strings, you'd have to write the above as <code>"\\bfoo'd\\b"</code></p>
+</div>
+<pre><code class="language-toml"># Type: array of strings
+# Values: array of any strings
+# Default: []
+
+[file_transfer.auto_accept]
+masks = [
+    '''nick!ident@example\.com''',
+    '''.*@foobar\.com'''
+]
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../configuration/buffer.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../configuration/ctcp.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -244,7 +305,7 @@ bind_port_last = "5000"
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../configuration/buffer.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../configuration/ctcp.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
@@ -272,6 +333,7 @@ bind_port_last = "5000"
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

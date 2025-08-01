@@ -30,21 +30,34 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -58,7 +71,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -71,17 +85,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -108,13 +125,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -128,7 +146,7 @@
                         <a href="https://github.com/squidowl/halloy" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/servers.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/servers.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -137,7 +155,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -185,13 +208,22 @@ nickname = ""
 nick_password = ""
 </code></pre>
 <h2 id="nick_password_file"><a class="header" href="#nick_password_file"><code>nick_password_file</code></a></h2>
-<p>Read nick_password from the file at the given path.<sup class="footnote-reference"><a href="#1">1</a></sup> <sup class="footnote-reference"><a href="#2">2</a></sup></p>
+<p>Read <code>nick_password</code> from the file at the given path.<sup class="footnote-reference" id="fr-1-1"><a href="#footnote-1">1</a></sup></p>
 <pre><code class="language-toml"># Type: string
 # Values: any string
 # Default: not set
 
 [servers.&lt;name&gt;]
 nick_password_file = ""
+</code></pre>
+<h2 id="nick_password_file_first_line_only"><a class="header" href="#nick_password_file_first_line_only"><code>nick_password_file_first_line_only</code></a></h2>
+<p>Read <code>nick_password</code> from the first line of <code>nick_password_file</code> only.</p>
+<pre><code class="language-toml"># Type: boolean
+# Values: true, false
+# Default: true
+
+[servers.&lt;name&gt;]
+nick_password_file_first_line_only = true
 </code></pre>
 <h2 id="nick_password_command"><a class="header" href="#nick_password_command"><code>nick_password_command</code></a></h2>
 <p>Executes the command with <code>sh</code> (or equivalent) and reads <code>nick_password</code> as the output.</p>
@@ -248,7 +280,7 @@ realname = ""
 server = "irc.libera.chat"
 </code></pre>
 <h2 id="port"><a class="header" href="#port"><code>port</code></a></h2>
-<p>The port to connect on.</p>
+<p>The port to connect on. If you want to use a plain text port like 6667 you MUST also change the <code>use_tls</code> setting.</p>
 <pre><code class="language-toml"># Type: integer
 # Values: any positive integer
 # Default: 6697
@@ -266,13 +298,22 @@ port = 6697
 password = ""
 </code></pre>
 <h2 id="password_file"><a class="header" href="#password_file"><code>password_file</code></a></h2>
-<p>Read password from the file at the given path.<sup class="footnote-reference"><a href="#1">1</a></sup> <sup class="footnote-reference"><a href="#2">2</a></sup></p>
+<p>Read password from the file at the given path.<sup class="footnote-reference" id="fr-1-2"><a href="#footnote-1">1</a></sup></p>
 <pre><code class="language-toml"># Type: string
 # Values: any string
 # Default: not set
 
 [servers.&lt;name&gt;]
 password_file = ""
+</code></pre>
+<h2 id="password_file_first_line_only"><a class="header" href="#password_file_first_line_only"><code>password_file_first_line_only</code></a></h2>
+<p>Read <code>password</code> from the first line of <code>password_file</code> only.</p>
+<pre><code class="language-toml"># Type: boolean
+# Values: true, false
+# Default: true
+
+[servers.&lt;name&gt;]
+password_file_first_line_only = true
 </code></pre>
 <h2 id="password_command"><a class="header" href="#password_command"><code>password_command</code></a></h2>
 <p>Executes the command with <code>sh</code> (or equivalent) and reads <code>password</code> as the output.</p>
@@ -282,6 +323,21 @@ password_file = ""
 
 [servers.&lt;name&gt;]
 password_command = ""
+</code></pre>
+<h2 id="filters"><a class="header" href="#filters"><code>filters</code></a></h2>
+<p>Filter messages based on various criteria.</p>
+<h3 id="filtersignore"><a class="header" href="#filtersignore"><code>filters.ignore</code></a></h3>
+<p>A list of nicknames to ignore. Optionally, the nickname may be preceded by a channel name like so: <code>"#channel nickname"</code> - this will ignore the nickname for a specific channel only.</p>
+<pre><code class="language-toml"># Type: array of strings
+# Values: array of any strings
+# Default: not set
+
+[servers.&lt;name&gt;.filters]
+ignore = [
+"ignored_user", 
+"another_user",
+"#specific-channel user_only_for_channel"
+]
 </code></pre>
 <h2 id="channels"><a class="header" href="#channels"><code>channels</code></a></h2>
 <p>A list of channels to join on connection.</p>
@@ -359,10 +415,10 @@ umodes = "+RB-x"
 <p>Whether or not to use TLS. Clients will automatically panic if this is enabled without TLS support.</p>
 <pre><code class="language-toml"># Type: boolean
 # Values: true, false
-# Default: false
+# Default: true
 
 [servers.&lt;name&gt;]
-use_tls = false
+use_tls = true
 </code></pre>
 <h2 id="dangerously_accept_invalid_certs"><a class="header" href="#dangerously_accept_invalid_certs"><code>dangerously_accept_invalid_certs</code></a></h2>
 <p>When <code>true</code>, all certificate validations are skipped.</p>
@@ -374,7 +430,7 @@ use_tls = false
 dangerously_accept_invalid_certs = false
 </code></pre>
 <h2 id="root_cert_path"><a class="header" href="#root_cert_path"><code>root_cert_path</code></a></h2>
-<p>The path to the root TLS certificate for this server in PEM format.<sup class="footnote-reference"><a href="#1">1</a></sup> <sup class="footnote-reference"><a href="#2">2</a></sup></p>
+<p>The path to the root TLS certificate for this server in PEM format.<sup class="footnote-reference" id="fr-1-3"><a href="#footnote-1">1</a></sup></p>
 <pre><code class="language-toml"># Type: string
 # Values: any string
 # Default: not set
@@ -383,13 +439,13 @@ dangerously_accept_invalid_certs = false
 root_cert_path = ""
 </code></pre>
 <h2 id="on_connect"><a class="header" href="#on_connect"><code>on_connect</code></a></h2>
-<p>Commands which are executed once connected.</p>
+<p>Commands which are executed once connected, in the order they are specified. The <code>/delay &lt;seconds&gt;</code> command can be used to add a delay between commands.</p>
 <pre><code class="language-toml"># Type: array of string
 # Values: array of any strings
 # Default: not set
 
 [servers.&lt;name&gt;]
-on_connect = ["/msg NickServ IDENTIFY foo bar"]
+on_connect = ["/msg NickServ IDENTIFY foo bar", "/delay 2", "/join registered-club"]
 </code></pre>
 <h2 id="who_poll_enabled"><a class="header" href="#who_poll_enabled"><code>who_poll_enabled</code></a></h2>
 <p>Whether or not to WHO polling is enabled.</p>
@@ -451,13 +507,22 @@ username = "username"
 password = "password"
 </code></pre>
 <h3 id="password_file-1"><a class="header" href="#password_file-1"><code>password_file</code></a></h3>
-<p>Read <code>password</code> from the file at the given path.<sup class="footnote-reference"><a href="#1">1</a></sup> <sup class="footnote-reference"><a href="#2">2</a></sup></p>
+<p>Read <code>password</code> from the file at the given path.<sup class="footnote-reference" id="fr-1-4"><a href="#footnote-1">1</a></sup></p>
 <pre><code class="language-toml"># Type: string
 # Values: any string
 # Default: not set
 
 [servers.&lt;name&gt;.sasl.plain]
 password_file = ""
+</code></pre>
+<h2 id="password_file_first_line_only-1"><a class="header" href="#password_file_first_line_only-1"><code>password_file_first_line_only</code></a></h2>
+<p>Read <code>password</code> from the first line of <code>password_file</code> only.</p>
+<pre><code class="language-toml"># Type: boolean
+# Values: true, false
+# Default: true
+
+[servers.&lt;name&gt;]
+password_file_first_line_only = true
 </code></pre>
 <h3 id="password_command-1"><a class="header" href="#password_command-1"><code>password_command</code></a></h3>
 <p>Executes the command with <code>sh</code> (or equivalent) and reads <code>password</code> as the output.</p>
@@ -471,7 +536,7 @@ password_command = ""
 <h2 id="saslexternal"><a class="header" href="#saslexternal"><code>sasl.external</code></a></h2>
 <p>External SASL auth uses a PEM encoded X509 certificate. <a href="https://libera.chat/guides/certfp">Reference</a>.</p>
 <h3 id="cert"><a class="header" href="#cert"><code>cert</code></a></h3>
-<p>The path to PEM encoded X509 user certificate for external auth.<sup class="footnote-reference"><a href="#1">1</a></sup> <sup class="footnote-reference"><a href="#2">2</a></sup></p>
+<p>The path to PEM encoded X509 user certificate for external auth.<sup class="footnote-reference" id="fr-1-5"><a href="#footnote-1">1</a></sup></p>
 <pre><code class="language-toml"># Type: string
 # Values: any string
 # Default: not set
@@ -480,7 +545,7 @@ password_command = ""
 cert = "/path/to/your/certificate.pem"
 </code></pre>
 <h3 id="key"><a class="header" href="#key"><code>key</code></a></h3>
-<p>The path to PEM encoded PKCS#8 private key for external auth (optional).<sup class="footnote-reference"><a href="#1">1</a></sup> <sup class="footnote-reference"><a href="#2">2</a></sup></p>
+<p>The path to PEM encoded PKCS#8 private key for external auth (optional).<sup class="footnote-reference" id="fr-1-6"><a href="#footnote-1">1</a></sup></p>
 <pre><code class="language-toml"># Type: string
 # Values: any string
 # Default: not set
@@ -488,13 +553,11 @@ cert = "/path/to/your/certificate.pem"
 [servers.&lt;name&gt;.sasl.external]
 key = "/path/to/your/private_key.pem"
 </code></pre>
-<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
-<p>Shell expansions (e.g. <code>"~/"</code> → <code>"/home/user/"</code>) are not supported in path strings.</p>
-</div>
-<div class="footnote-definition" id="2"><sup class="footnote-definition-label">2</sup>
-<p>Windows path strings should usually be specified as literal strings (e.g. <code>'C:\Users\Default\'</code>), otherwise directory separators will need to be escaped (e.g. <code>"C:\\Users\\Default\\"</code>).</p>
-</div>
-
+<hr>
+<ol class="footnote-definition"><li id="footnote-1">
+<p>Windows path strings should usually be specified as literal strings (e.g. <code>'C:\Users\Default\'</code>), otherwise directory separators will need to be escaped (e.g. <code>"C:\\Users\\Default\\"</code>). <a href="#fr-1-1">↩</a> <a href="#fr-1-2">↩2</a> <a href="#fr-1-3">↩3</a> <a href="#fr-1-4">↩4</a> <a href="#fr-1-5">↩5</a> <a href="#fr-1-6">↩6</a></p>
+</li>
+</ol>
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
@@ -541,6 +604,7 @@ key = "/path/to/your/private_key.pem"
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

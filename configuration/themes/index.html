@@ -30,21 +30,34 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -58,7 +71,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -71,17 +85,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -108,13 +125,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -128,7 +146,7 @@
                         <a href="https://github.com/squidowl/halloy" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/themes/README.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/themes/README.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -137,7 +155,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -165,7 +188,9 @@ theme = "ferra"
 # Dynamic
 theme = { light = "ferra-light", dark = "ferra" }
 </code></pre>
-<p>Note: <code>theme</code> is a root key, so it must be placed before any section.</p>
+<blockquote>
+<p>⚠️  <code>theme</code> is a root key, so it must be placed before every section.</p>
+</blockquote>
 <h2 id="theme"><a class="header" href="#theme"><code>theme</code></a></h2>
 <p>Specify the theme name(s) to use. The theme must correspond to a file located in the <code>themes</code> folder, which can be found in the Halloy configuration directory. The default theme in Halloy is <a href="https://github.com/casperstorm/ferra/">Ferra</a>.</p>
 <p>When a dynamic theme is used, Halloy will match the appearance of the OS.</p>
@@ -193,6 +218,7 @@ theme = "foobar"
 background = "&lt;string&gt;"
 border = "&lt;string&gt;"
 horizontal_rule = "&lt;string&gt;"
+scrollbar = "&lt;string&gt;"
 unread_indicator = "&lt;string&gt;"
 
 [text]
@@ -201,6 +227,10 @@ secondary = "&lt;string&gt;"
 tertiary = "&lt;string&gt;"
 success = "&lt;string&gt;"
 error = "&lt;string&gt;"
+warning = "&lt;string&gt;"
+info = "&lt;string&gt;"
+debug = "&lt;string&gt;"
+trace = "&lt;string&gt;"
 
 [buttons.primary]
 background = "&lt;string&gt;"
@@ -224,6 +254,7 @@ border_selected = "&lt;string&gt;"
 code = "&lt;string&gt;"
 highlight = "&lt;string&gt;"
 nickname = "&lt;string&gt;"
+nickname_offline = "&lt;string&gt;"
 selection = "&lt;string&gt;"
 timestamp = "&lt;string&gt;"
 topic = "&lt;string&gt;"
@@ -234,6 +265,8 @@ url = "&lt;string&gt;"
 # Otherwise simply set `default` to use that for all server messages.
 #
 # change_host = "&lt;string&gt;"
+# change_mode = "&lt;string&gt;"
+# change_nick = "&lt;string&gt;"
 # join = "&lt;string&gt;"
 # part = "&lt;string&gt;"
 # quit = "&lt;string&gt;"
@@ -243,6 +276,7 @@ url = "&lt;string&gt;"
 # standard_reply_fail = "&lt;string&gt;"
 # standard_reply_warn = "&lt;string&gt;"
 # standard_reply_note = "&lt;string&gt;"
+# wallops = "&lt;string&gt;"
 default = "&lt;string&gt;"
 </code></pre>
 <blockquote>
@@ -295,6 +329,7 @@ default = "&lt;string&gt;"
         <script src="../../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>
