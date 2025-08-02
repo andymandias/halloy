@@ -23,28 +23,41 @@
         <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -58,7 +71,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -71,17 +85,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -108,13 +125,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -128,7 +146,7 @@
                         <a href="https://github.com/squidowl/halloy" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/buffer.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/buffer.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -137,7 +155,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -160,7 +183,6 @@
                         <h1 id="buffer"><a class="header" href="#buffer"><code>[buffer]</code></a></h1>
 <p>Buffer settings for Halloy.</p>
 <ol>
-<li><a href="#bufferaway">Away</a> - Controls the appearance of away nicknames</li>
 <li><a href="#bufferchannel">Channel</a> - Channel specific settings
 <ol>
 <li><a href="#bufferchannelmessage">Message</a> - Message settings within a channel buffer</li>
@@ -173,23 +195,14 @@
 <li><a href="#bufferdate_separators">Date Separators</a> - Customize how date separators are displayed within a buffer</li>
 <li><a href="#bufferemojis">Emojis</a> - Emojis settings</li>
 <li><a href="#bufferinternal_messages">Internal Messages</a> - Internal messages are messages sent from Halloy itself</li>
+<li><a href="#buffermark_as_read">Mark as Read</a> - When to automatically mark a buffer as read</li>
 <li><a href="#buffernickname">Nickname</a> - Customize how nicknames are displayed within a buffer</li>
-<li><a href="#bufferserver_messages">Server Messages</a> - Server messages are messages sent from a irc server.</li>
+<li><a href="#bufferserver_messages">Server Messages</a> - Server messages are messages sent from an IRC server.</li>
 <li><a href="#bufferstatus_message_prefix">Status Message Prefix</a> - Status message prefix settings</li>
 <li><a href="#buffertext_input">Text Input</a> - Customize the text input for in buffers</li>
 <li><a href="#buffertimestamp">Timestamp</a> - Customize how timestamps are displayed within a buffer</li>
+<li><a href="#bufferurl">Url</a> - URLs in buffers</li>
 </ol>
-<h2 id="bufferaway"><a class="header" href="#bufferaway"><code>[buffer.away]</code></a></h2>
-<p>Controls the appearance of away nicknames.</p>
-<h3 id="appearance"><a class="header" href="#appearance"><code>appearance</code></a></h3>
-<p>Controls the appearance of away nicknames in buffers.</p>
-<pre><code class="language-toml"># Type: string
-# Values: "dimmed", "solid"
-# Default: "dimmed"
-
-[buffer.away]
-appearance = "dimmed"
-</code></pre>
 <h2 id="bufferchannel"><a class="header" href="#bufferchannel"><code>[buffer.channel]</code></a></h2>
 <p>Channel specific settings</p>
 <h3 id="bufferchannelmessage"><a class="header" href="#bufferchannelmessage"><code>[buffer.channel.message]</code></a></h3>
@@ -213,6 +226,22 @@ nickname_color = "unique"
 
 [buffer.channel.nicklist]
 alignment = "left"
+</code></pre>
+<h4 id="away"><a class="header" href="#away"><code>away</code></a></h4>
+<p>Controls the appearance of away nicknames.</p>
+<pre><code class="language-toml"># Type: string or object
+# Values: "dimmed", "none" or { dimmed = float }
+# Default: "dimmed"
+[buffer.channel.nicklist]
+away = "dimmed"
+
+# with custom dimming alpha value (0.0-1.0)
+[buffer.channel.nicklist]
+away = { dimmed = 0.5 }
+
+# no away indication
+[buffer.channel.nicklist]
+away = "none"
 </code></pre>
 <h4 id="color"><a class="header" href="#color"><code>color</code></a></h4>
 <p>Nickname colors in the nicklist. <code>"unique"</code> generates colors by randomizing the hue, while keeping the saturation and lightness from the theme's nickname color.</p>
@@ -259,13 +288,26 @@ show_access_levels = true
 [buffer.channel.nicklist]
 width = 150
 </code></pre>
+<h4 id="click"><a class="header" href="#click"><code>click</code></a></h4>
+<p>Click action for when interaction with nicknames.</p>
+<ul>
+<li><code>"open-query"</code>: Open a query with the User</li>
+<li><code>"insert-nickname"</code>: Inserts the nickname into text input</li>
+</ul>
+<pre><code class="language-toml"># Type: string
+# Values: "open-query", "insert-nickname"
+# Default: "open-query"
+
+[buffer.channel.nicklist]
+click = "open-query"
+</code></pre>
 <h3 id="bufferchanneltopic"><a class="header" href="#bufferchanneltopic"><code>[buffer.channel.topic]</code></a></h3>
 <p>Topic settings within a channel buffer.</p>
 <h4 id="enabled-1"><a class="header" href="#enabled-1"><code>enabled</code></a></h4>
 <p>Control if topic should be shown or not by default.</p>
 <pre><code class="language-toml"># Type: boolean
 # Values: true, false
-# Default: true
+# Default: false
 
 [buffer.channel.topic]
 enabled = true
@@ -274,7 +316,7 @@ enabled = true
 <p>Amount of visible lines before you have to scroll in topic banner.</p>
 <pre><code class="language-toml"># Type: integer
 # Values: any positive integer
-# Default: 2z
+# Default: 2
 
 [buffer.channel.topic]
 max_lines = 2
@@ -359,10 +401,20 @@ skin_tone = "default"
 [buffer.emojis]
 auto_replace = true
 </code></pre>
+<h3 id="characters_to_trigger_picker"><a class="header" href="#characters_to_trigger_picker"><code>characters_to_trigger_picker</code></a></h3>
+<p>Minimum number of characters after <code>:</code> required for the emoji picker to show.
+E.g. <code>:D</code> will not show the emoji picker unless <code>characters_to_trigger_picker</code> is less than or equal to <code>1</code>.</p>
+<pre><code class="language-toml"># Type: integer
+# Values: any non-negative integer
+# Default: 2
+
+[buffer.emojis]
+characters_to_trigger_picker = 2
+</code></pre>
 <h2 id="bufferinternal_messages"><a class="header" href="#bufferinternal_messages"><code>[buffer.internal_messages]</code></a></h2>
 <p>Internal messages are messages sent from Halloy itself.</p>
 <h3 id="bufferinternal_messagessuccess"><a class="header" href="#bufferinternal_messagessuccess"><code>[buffer.internal_messages.success]</code></a></h3>
-<p>A internal messages which is considered a "success" such as when a connection was restored, or when connected succesfully to a server.</p>
+<p>A internal messages which is considered a "success" such as when a connection was restored, or when connected successfully to a server.</p>
 <h4 id="enabled-2"><a class="header" href="#enabled-2"><code>enabled</code></a></h4>
 <p>Control if internal message type is enabled.</p>
 <pre><code class="language-toml"># Type: boolean
@@ -401,6 +453,44 @@ enabled = true
 [buffer.internal_messages.error]
 smart = 180
 </code></pre>
+<h2 id="buffermark_as_read"><a class="header" href="#buffermark_as_read"><code>[buffer.mark_as_read]</code></a></h2>
+<p>When to mark a buffer as read</p>
+<h3 id="on_application_exit"><a class="header" href="#on_application_exit"><code>on_application_exit</code></a></h3>
+<p>When exiting the application (all buffers, opened or closed, will be marked as read when the application exits).</p>
+<pre><code class="language-toml"># Type: boolean
+# Values: true, false
+# Default: false
+
+[buffer.mark_as_read]
+on_application_exit = false
+</code></pre>
+<h3 id="on_buffer_close"><a class="header" href="#on_buffer_close"><code>on_buffer_close</code></a></h3>
+<p>When closing a buffer (a buffer is considered closed when it is replaced or if it is open when the application exits).</p>
+<pre><code class="language-toml"># Type: boolean
+# Values: true, false
+# Default: true
+
+[buffer.mark_as_read]
+on_buffer_close = true
+</code></pre>
+<h3 id="on_scroll_to_bottom"><a class="header" href="#on_scroll_to_bottom"><code>on_scroll_to_bottom</code></a></h3>
+<p>When scrolling to the bottom of a buffer.</p>
+<pre><code class="language-toml"># Type: boolean
+# Values: true, false
+# Default: true
+
+[buffer.mark_as_read]
+on_scroll_to_bottom = true
+</code></pre>
+<h3 id="on_message_sent"><a class="header" href="#on_message_sent"><code>on_message_sent</code></a></h3>
+<p>When sending a message to the buffer.</p>
+<pre><code class="language-toml"># Type: boolean
+# Values: true, false
+# Default: true
+
+[buffer.mark_as_read]
+on_message_sent = true
+</code></pre>
 <h2 id="buffernickname"><a class="header" href="#buffernickname"><code>[buffer.nickname]</code></a></h2>
 <p>Customize how nicknames are displayed within a buffer.</p>
 <h3 id="alignment-1"><a class="header" href="#alignment-1"><code>alignment</code></a></h3>
@@ -411,6 +501,22 @@ smart = 180
 
 [buffer.nickname]
 alignment = "right"
+</code></pre>
+<h3 id="away-1"><a class="header" href="#away-1"><code>away</code></a></h3>
+<p>Controls the appearance of away nicknames.</p>
+<pre><code class="language-toml"># Type: string or object
+# Values: "dimmed", "none" or { dimmed = float }
+# Default: "dimmed"
+[buffer.nickname]
+away = "dimmed"
+
+# with custom dimming alpha value (0.0-1.0)
+[buffer.nickname]
+away = { dimmed = 0.5 }
+
+# no away indication
+[buffer.nickname]
+away = "none"
 </code></pre>
 <h3 id="brackets"><a class="header" href="#brackets"><code>brackets</code></a></h3>
 <p>Brackets around nicknames.</p>
@@ -430,6 +536,18 @@ brackets = { left = "&lt;", right = "&gt;" }
 [buffer.nickname]
 color = "unique"
 </code></pre>
+<h3 id="offline"><a class="header" href="#offline"><code>offline</code></a></h3>
+<p>Controls the appearance of offline nicknames.</p>
+<pre><code class="language-toml"># Type: string or object
+# Values: "solid" or "none"
+# Default: "solid"
+[buffer.nickname]
+offline = "solid"
+
+# no offline indication
+[buffer.nickname]
+offline = "none"
+</code></pre>
 <h3 id="show_access_levels-1"><a class="header" href="#show_access_levels-1"><code>show_access_levels</code></a></h3>
 <p>Show access levels in front of nicknames (<code>@</code>, <code>+</code>, <code>~</code>, etc.).</p>
 <pre><code class="language-toml"># Type: boolean
@@ -439,20 +557,53 @@ color = "unique"
 [buffer.nickname]
 show_access_levels = true
 </code></pre>
-<h2 id="bufferserver_messages"><a class="header" href="#bufferserver_messages"><code>[buffer.server_messages]</code></a></h2>
-<p>Server messages are messages sent from a irc server.</p>
+<h3 id="shown_status"><a class="header" href="#shown_status"><code>shown_status</code></a></h3>
+<p>What status should be indicated (by either <code>away</code> or <code>offline</code> settings), the user's current status (<code>"current"</code>) or their status at the time of sending the message (<code>"historical"</code>).</p>
+<pre><code class="language-toml"># Type: string or object
+# Values: "current" or "historical"
+# Default: "current"
+[buffer.nickname]
+shown_status = "current"
+</code></pre>
+<h3 id="click-1"><a class="header" href="#click-1"><code>click</code></a></h3>
+<p>Click action for when interaction with nicknames.</p>
 <ul>
-<li><strong>change_host</strong> - Message is sent when a user changes host</li>
-<li><strong>join</strong> - Message is sent when a user joins a channel</li>
-<li><strong>monitored_offline</strong> - Message is sent when a monitored user goes offline</li>
-<li><strong>monitored_online</strong> - Message is sent when a monitored user goes online</li>
-<li><strong>part</strong> - Message is sent when a user leaves a channel</li>
-<li><strong>quit</strong> - Message is sent when a user closes the connection to a channel or server</li>
-<li><strong>standard_reply_fail</strong> - Message is sent when a command/function fails or an error with the session</li>
-<li><strong>standard_reply_note</strong> - Message is sent when there is information about a command/function or session</li>
-<li><strong>standard_reply_warn</strong> - Message is sent when there is feedback about a command/function or session</li>
-<li><strong>topic</strong> - Message is sent when a user changes channel topic</li>
+<li><code>"open-query"</code>: Open a query with the User</li>
+<li><code>"insert-nickname"</code>: Inserts the nickname into text input</li>
 </ul>
+<pre><code class="language-toml"># Type: string
+# Values: "open-query", "insert-nickname"
+# Default: "open-query"
+
+[buffer.nickname]
+click = "open-query"
+</code></pre>
+<h3 id="truncate"><a class="header" href="#truncate"><code>truncate</code></a></h3>
+<p>Truncate nicknames in buffer to a maximum length</p>
+<pre><code class="language-toml"># Type: integer
+# Values: any positive integer
+# Default: not set
+
+[buffer.nickname]
+truncate = 10
+</code></pre>
+<h2 id="bufferserver_messages"><a class="header" href="#bufferserver_messages"><code>[buffer.server_messages]</code></a></h2>
+<p>Server messages are messages sent from an IRC server.</p>
+<div class="table-wrapper"><table><thead><tr><th><strong>Event Type</strong></th><th><strong>Description</strong></th></tr></thead><tbody>
+<tr><td><code>change_host</code></td><td>Message is sent when a user changes host</td></tr>
+<tr><td><code>change_mode</code></td><td>Message is sent when a mode is set</td></tr>
+<tr><td><code>change_nick</code></td><td>Message is sent when a user changes nick</td></tr>
+<tr><td><code>join</code></td><td>Message is sent when a user joins a channel</td></tr>
+<tr><td><code>monitored_offline</code></td><td>Message is sent when a monitored user goes offline</td></tr>
+<tr><td><code>monitored_online</code></td><td>Message is sent when a monitored user goes online</td></tr>
+<tr><td><code>part</code></td><td>Message is sent when a user leaves a channel</td></tr>
+<tr><td><code>quit</code></td><td>Message is sent when a user closes the connection to a channel or server</td></tr>
+<tr><td><code>standard_reply_fail</code></td><td>Message is sent when a command/function fails or an error with the session</td></tr>
+<tr><td><code>standard_reply_note</code></td><td>Message is sent when there is information about a command/function or session</td></tr>
+<tr><td><code>standard_reply_warn</code></td><td>Message is sent when there is feedback about a command/function or session</td></tr>
+<tr><td><code>topic</code></td><td>Message is sent when the client joins a channel to inform them of the topic</td></tr>
+</tbody></table>
+</div>
 <p>Example</p>
 <pre><code class="language-toml"># Hide all join messages except for `#halloy` channel:
 
@@ -463,7 +614,7 @@ include = ["#halloy"]
 # Disable all part messages
 
 [buffer.server_messages.part]
-enable = false
+enabled = false
 </code></pre>
 <h3 id="enabled-4"><a class="header" href="#enabled-4"><code>enabled</code></a></h3>
 <p>Control if internal message type is enabled.</p>
@@ -484,7 +635,7 @@ enabled = true
 smart = 180
 </code></pre>
 <h3 id="exclude"><a class="header" href="#exclude"><code>exclude</code></a></h3>
-<p>Exclude channels from receiving the server messag.
+<p>Exclude channels from receiving the server message.
 If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will not receive the server message. You can also exclude all channels by using a wildcard: <code>["*"]</code>.</p>
 <pre><code class="language-toml"># Type: array of strings
 # Values: array of any strings
@@ -507,7 +658,7 @@ include = ["#halloy"]
 <p>Adjust the amount of information displayed for a username in server messages. If you choose <code>"short"</code>, only the nickname will be shown. If you choose <code>"full"</code>, the nickname, username, and hostname (if available) will be displayed.</p>
 <p>Note: Not all server messages uses this setting.</p>
 <pre><code class="language-toml"># Type: string
-# Values: "full", "short
+# Values: "full", "short"
 # Default: "full"
 
 [buffer.server_messages.&lt;server_message&gt;]
@@ -549,8 +700,25 @@ auto_format = "markdown"
 </blockquote>
 <h3 id="buffertext_inputautocomplete"><a class="header" href="#buffertext_inputautocomplete"><code>[buffer.text_input.autocomplete]</code></a></h3>
 <p>Customize autocomplete.</p>
+<h4 id="order_by"><a class="header" href="#order_by"><code>order_by</code></a></h4>
+<p>Ordering that autocomplete uses to select from matching users.</p>
+<ul>
+<li><code>"recent"</code>: Autocomplete users by their last message in the channel;  the user with most recent message autocompletes first, then increasingly older messages.  Users with no seen messages are matched last, in the order specified by <code>sort_direction</code>.</li>
+<li><code>"alpha"</code>: Autocomplete users based on alphabetical ordering of potential matches.  Ordering is asecnding/descinding based on <code>sort_direction</code>.</li>
+</ul>
+<pre><code class="language-toml"># Type: string
+# Values: "alpha", "recent"
+# Default: "recent"
+
+[buffer.text_input.autocomplete]
+order_by = "recent"
+</code></pre>
 <h4 id="sort_direction"><a class="header" href="#sort_direction"><code>sort_direction</code></a></h4>
-<p>Sort direction when autocompleting.</p>
+<p>Sort direction when autocompleting alphabetically.</p>
+<ul>
+<li><code>"asc"</code>: ascending alphabetical (a→z)</li>
+<li><code>"desc"</code>: descending alphabetical (z→a)</li>
+</ul>
 <pre><code class="language-toml"># Type: string
 # Values: "asc", "desc"
 # Default: "asc"
@@ -587,16 +755,27 @@ format = "%R"
 [buffer.timestamp]
 brackets = { left = "[", right = "]" }
 </code></pre>
+<h2 id="bufferurl"><a class="header" href="#bufferurl"><code>[buffer.url]</code></a></h2>
+<p>Customize how urls behave in buffers</p>
+<h3 id="prompt_before_open"><a class="header" href="#prompt_before_open"><code>prompt_before_open</code></a></h3>
+<p>Prompt before opening a hyperlink.</p>
+<pre><code class="language-toml"># Type: boolean
+# Values: true, false
+# Default: false
+
+[buffer.url]
+prompt_before_open = true
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../configuration/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../configuration/actions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../configuration/file_transfer.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../configuration/ctcp.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -606,11 +785,11 @@ brackets = { left = "[", right = "]" }
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../configuration/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../configuration/actions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../configuration/file_transfer.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../configuration/ctcp.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
@@ -634,6 +813,7 @@ brackets = { left = "[", right = "]" }
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

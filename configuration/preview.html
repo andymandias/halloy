@@ -23,28 +23,41 @@
         <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -58,7 +71,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -71,17 +85,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -108,13 +125,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -128,7 +146,7 @@
                         <a href="https://github.com/squidowl/halloy" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/preview.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/squidowl/halloy/edit/main/book/src/configuration/preview.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -137,7 +155,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -171,7 +194,7 @@ enabled = true
 <h2 id="request"><a class="header" href="#request"><code>request</code></a></h2>
 <p>Request settings for previews.</p>
 <h3 id="user_agent"><a class="header" href="#user_agent"><code>user_agent</code></a></h3>
-<p>Some servers will only send opengraph metadata to browser-like user agents. We default to <code>WhatsApp/2</code> for wide compatability.</p>
+<p>Some servers will only send opengraph metadata to browser-like user agents. We default to <code>WhatsApp/2</code> for wide compatibility.</p>
 <pre><code class="language-toml"># Type: string
 # Values: any string
 # Default: "WhatsApp/2"
@@ -180,7 +203,7 @@ enabled = true
 user_agent = "WhatsApp/2"
 </code></pre>
 <h3 id="timeout_ms"><a class="header" href="#timeout_ms"><code>timeout_ms</code></a></h3>
-<p>Request timeout in millisceonds. Defaults is 10s.</p>
+<p>Request timeout in milliseconds. Defaults is 10s.</p>
 <pre><code class="language-toml"># Type: integer
 # Values: any positive integer
 # Default: 10000
@@ -216,7 +239,7 @@ max_scrape_size = 512000
 concurrency = 4
 </code></pre>
 <h3 id="delay_ms"><a class="header" href="#delay_ms"><code>delay_ms</code></a></h3>
-<p>Numer of milliseconds to wait before requesting another preview when number of requested previews &gt; <code>concurrency</code>.</p>
+<p>Number of milliseconds to wait before requesting another preview when number of requested previews &gt; <code>concurrency</code>.</p>
 <pre><code class="language-toml"># Type: integer
 # Values: any positive integer
 # Default: 500
@@ -226,9 +249,18 @@ delay_ms = 500
 </code></pre>
 <h2 id="image"><a class="header" href="#image"><code>image</code></a></h2>
 <p>Specific image preview settings.</p>
+<h3 id="action"><a class="header" href="#action"><code>action</code></a></h3>
+<p>Action when clicking on a image. <code>open-url</code> will open the image in the browser, and <code>preview</code> will display a larger version of the image in-app.</p>
+<pre><code class="language-toml"># Type: string
+# Values: "open-url", "preview"
+# Default: "preview"
+
+[preview.image]
+action = "preview"
+</code></pre>
 <h3 id="include"><a class="header" href="#include"><code>include</code></a></h3>
-<p>Include image previews from channels.
-If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will show image previews. The include rule takes priority over exclude, so you can use both together. For example, you can exclude all channels with <code>["*"]</code> and then only include a few specific channels.</p>
+<p>Include image previews from channels &amp; queries.
+If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will show image previews. The include rule takes priority over exclude, so you can use both together. For example, you can exclude all channels &amp; queries with <code>["*"]</code> and then only include a few specific channels.</p>
 <pre><code class="language-toml"># Type: array of strings
 # Values: array of any strings
 # Default: []
@@ -237,8 +269,8 @@ If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will show
 include = []
 </code></pre>
 <h3 id="exclude"><a class="header" href="#exclude"><code>exclude</code></a></h3>
-<p>Exclude image previews from channels.
-If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will not show image previews. You can also exclude all channels by using a wildcard: <code>["*"]</code>.</p>
+<p>Exclude image previews from channels &amp; queries.
+If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will not show image previews. You can also exclude all channels &amp; queries by using a wildcard: <code>["*"]</code>.</p>
 <pre><code class="language-toml"># Type: array of strings
 # Values: array of any strings
 # Default: []
@@ -263,8 +295,8 @@ include = ["#halloy"] # show image previews in #halloy
 show_image = true
 </code></pre>
 <h3 id="include-1"><a class="header" href="#include-1"><code>include</code></a></h3>
-<p>Include card previews from channels.
-If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will show image previews. The include rule takes priority over exclude, so you can use both together. For example, you can exclude all channels with <code>["*"]</code> and then only include a few specific channels.</p>
+<p>Include card previews from channels &amp; queries.
+If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will show image previews. The include rule takes priority over exclude, so you can use both together. For example, you can exclude all channels &amp; queries with <code>["*"]</code> and then only include a few specific channels.</p>
 <pre><code class="language-toml"># Type: array of strings
 # Values: array of any strings
 # Default: []
@@ -273,8 +305,8 @@ If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will show
 include = []
 </code></pre>
 <h3 id="exclude-1"><a class="header" href="#exclude-1"><code>exclude</code></a></h3>
-<p>Exclude card previews from channels.
-If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will not show image previews. You can also exclude all channels by using a wildcard: <code>["*"]</code>.</p>
+<p>Exclude card previews from channels &amp; queries.
+If you pass <code>["#halloy"]</code>, the channel <code>#halloy</code> will not show image previews. You can also exclude all channels &amp; queries by using a wildcard: <code>["*"]</code>.</p>
 <pre><code class="language-toml"># Type: array of strings
 # Values: array of any strings
 # Default: []
@@ -334,6 +366,7 @@ include = ["#halloy"] # show card previews in #halloy
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>
