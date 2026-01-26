@@ -13,16 +13,6 @@ jobs:
     strategy:
       matrix:
         target:
-          - target: macos
-            os: macos-latest
-            make: bash scripts/build-macos.sh
-            artifact_path: |
-              echo "ARTIFACT_PATH=target/release/macos/halloy.dmg" >> "$GITHUB_ENV"
-          - target: windows
-            os: windows-latest
-            make: bash scripts/build-windows-installer.sh
-            artifact_path: |
-              echo "ARTIFACT_PATH=target/release/halloy-installer.msi" >> $env:GITHUB_ENV
           - target: linux
             os: ubuntu-latest
             make: bash scripts/package-linux.sh package
@@ -64,22 +54,6 @@ jobs:
       - name: Build
         run: ${{ matrix.target.make }}
 
-      - name: Sign macOS
-        if: matrix.target.target == 'macos'
-        env:
-          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
-          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
-          MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
-          MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
-          MACOS_NOTARIZATION_PWD: ${{ secrets.MACOS_NOTARIZATION_PWD }}
-        run: bash scripts/sign-macos.sh
-
-      - name: Package macOS
-        if: matrix.target.target == 'macos'
-        run: bash scripts/package-macos.sh
-
       - name: Set artifact path
         run: ${{ matrix.target.artifact_path }}
 
@@ -113,14 +87,6 @@ jobs:
     strategy:
       matrix:
         target:
-          - artifact: macos
-            artifact_name: |
-              echo "ARTIFACT_NAME=halloy.dmg" >> "$GITHUB_ENV"
-            asset_type: application/octet-stream
-          - artifact: windows
-            artifact_name: |
-              echo "ARTIFACT_NAME=halloy-installer.msi" >> "$GITHUB_ENV"
-            asset_type: application/x-dosexec
           - artifact: linux
             artifact_name: |
               echo "ARTIFACT_NAME=$(bash scripts/package-linux.sh archive_name)" >> "$GITHUB_ENV"
