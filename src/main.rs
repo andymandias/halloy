@@ -135,8 +135,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                 window_load.clone(),
                 destination.clone(),
                 log_stream,
-                // we start with an unspecified mode because we are guaranteed to
-                // receive a message from mundy containing the correct mode on startup.
+                // we start with an unspecified mode because we are guaranteed
+                // to receive a message from mundy containing the correct mode
+                // on startup.
                 appearance::Mode::Unspecified,
             )
         },
