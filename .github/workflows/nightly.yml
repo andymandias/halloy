@@ -68,7 +68,7 @@ jobs:
           tool: cargo-edit
 
       - name: Set version to nightly
-        run: echo "nightly" > VERSION
+        run: cp NIGHTLY VERSION
 
       - name: Build
         run: ${{ matrix.target.make }}
