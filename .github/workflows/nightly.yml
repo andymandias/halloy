@@ -1,13 +1,13 @@
 name: "Nightly Release"
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Build
+    types:
+      - completed
     branches:
       - main
-    paths:
-      - "**.rs"
-      - "**/Cargo.toml"
-      - "Cargo.lock"
 
 # We must only run one release workflow at a time to prevent corrupting
 # our release artifacts.
@@ -66,6 +66,9 @@ jobs:
         uses: taiki-e/install-action@e0eafa9a0d485c37f97c0f7beb930a58a2facbac # v2
         with:
           tool: cargo-edit
+
+      - name: Set version to nightly
+        run: echo "nightly" > VERSION
 
       - name: Build
         run: ${{ matrix.target.make }}
@@ -150,4 +153,4 @@ jobs:
 
       - name: Upload asset
         run: |
-          gh release upload ${{ github.event.inputs.tag }} ./${{ matrix.target.artifact }}/${{ env.ARTIFACT_NAME }}
+          gh release upload nightly ./${{ matrix.target.artifact }}/${{ env.ARTIFACT_NAME }}
