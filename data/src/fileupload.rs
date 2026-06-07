@@ -42,11 +42,10 @@ pub enum Auth {
     External { cert: PathBuf, key: Option<PathBuf> },
 }
 
-impl Auth {
-    pub fn from_sasl(
-        sasl: &Sasl,
-        nickname: &str,
-    ) -> Result<Self, &'static str> {
+impl TryFrom<&Sasl> for Auth {
+    type Error = &'static str;
+
+    fn try_from(sasl: &Sasl) -> Result<Self, Self::Error> {
         Ok(match sasl {
             Sasl::Plain {
                 username, password, ..
@@ -58,10 +57,7 @@ impl Auth {
                 };
 
                 Self::Basic {
-                    username: username
-                        .as_ref()
-                        .map_or(nickname, |username| username.as_str())
-                        .to_string(),
+                    username: username.clone(),
                     password: password.clone(),
                 }
             }
